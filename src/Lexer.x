@@ -1,18 +1,18 @@
 {
 -----------------------------------------------------------------------------
 -- |
--- Module      : Language.Scheme.R5RS.Parser.Lexer
+-- Module      : Language.Scheme.R5RS.Parser.Parser
 -- Copyright   : (c) Tyler Prete 
 -- License     : BSD-style
 -- Maintainer  : psyonic@gmail.com
 -- Stability   : experimental
 -- Portability : ghc
 --
--- Lexical tokens for the Scheme R5RS lexer.
+-- Implementation of the Scheme R5RS Parser
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
-module Language.Scheme.R5RS.Parser.Lexer ()
+module Language.Scheme.R5RS.Parser.Lexer ( alexScanTokens )
 where
 import qualified Language.Scheme.R5RS.Parser.Token as Token
 }

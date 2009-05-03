@@ -1,14 +1,14 @@
 {
 -----------------------------------------------------------------------------
 -- |
--- Module      : Language.Scheme.R5RS.Parser.Parser
+-- Module      : Language.Scheme.R5RS.Parser.Lexer
 -- Copyright   : (c) Tyler Prete 
 -- License     : BSD-style
 -- Maintainer  : psyonic@gmail.com
 -- Stability   : experimental
 -- Portability : ghc
 --
--- Implementation of the Scheme R5RS Parser
+-- Lexical tokens for the Scheme R5RS lexer.
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ $subsequent = [$initial $digit $special_subsequent]
 @number = $digit+
 @character_name = space | newline
 @character = \#\\. | \#\\ @character_name
-@string_element = [^\"\\] | \\\" | \\\\
+@string_element = [^\"\\] | \" | \\ | \n
 @string = \" @string_element* \"
 
 thing :-

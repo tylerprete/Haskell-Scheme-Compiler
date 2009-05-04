@@ -35,7 +35,7 @@ instance PrettyPrint Exp where
   pp (Boolean b) = if b then "#t" else "#f"
   pp (Number n) = pp n
   pp (Character c) = show c
-  pp (String s) = s
+  pp (String s) = "\"" ++ s ++ "\""
   pp (Symbol s) = s
   pp (List xs) = ppList xs
   pp (DottedList xs e) = ppDottedList xs e

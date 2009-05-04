@@ -51,7 +51,7 @@ $subsequent = [$initial $digit $special_subsequent]
 @expression_keyword = quote | lambda | if
 	| set\! | begin | cond | and | or | case
 	| let | let\* | letrec | do | delay
-	| quasiqote
+	| quasiquote
 @syntactic_keyword = @expression_keyword
 	| else | \=\> | define
 	| unquote | unquote-splicing

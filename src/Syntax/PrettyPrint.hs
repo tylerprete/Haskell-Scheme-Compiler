@@ -27,7 +27,7 @@ instance PrettyPrint Var where
 
 instance PrettyPrint Formals where
   pp (SingleVar v) = pp v
-  pp (VarList xs) = "(" ++ ppList xs
+  pp (VarList xs) = ppList xs
   pp (DottedVarList xs v) = ppDottedList xs v
 
 instance PrettyPrint Exp where

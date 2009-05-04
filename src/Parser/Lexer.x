@@ -15,6 +15,7 @@
 module Language.Scheme.R5RS.Parser.Lexer ( alexScanTokens )
 where
 import qualified Language.Scheme.R5RS.Parser.Token as Token
+import Language.Scheme.R5RS.Syntax.Expression (Number(Integer))
 }
 
 %wrapper "basic"
@@ -75,7 +76,7 @@ thing :-
 	$comma { \s -> Token.Comma }
 	@comma_at { \s -> Token.CommaAt }
 	$dot { \s -> Token.Dot }
-	@number { \s -> Token.Number $ Token.Integer (toInt s) }
+	@number { \s -> Token.Number $ Integer (toInt s) }
 	@boolean { \s -> Token.Boolean (boolean_val s) }
 	@character { \s -> Token.Character (toChar s) }
 	@string { \s -> Token.String (stripString s) }

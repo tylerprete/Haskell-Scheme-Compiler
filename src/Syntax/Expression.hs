@@ -12,11 +12,15 @@
 -----------------------------------------------------------------------------
 
 module Language.Scheme.R5RS.Syntax.Expression
-	(Exp(..), Formals(..), Var(..),
-	makeFormalList, makeList, makeVector)	
+	(Exp(..), Formals(..), Var(..), Number(..))
 where
-import qualified Language.Scheme.R5RS.Parser.Token as Token
-import Data.Maybe
+
+-- Number Constructors (Base 10 assumed)
+data Number
+	= Real Float
+--	| Complex Complex Float
+	| Integer Int -- Integer Integer (Using Int as a simplification for now)
+	deriving (Eq, Show, Ord)
 
 data Var = Var String
 	deriving Show
@@ -29,7 +33,7 @@ data Formals	= SingleVar Var
 data Exp	= Ref Var
 		-- Literals (Values)
 		| Boolean Bool
-		| Number Token.Number
+		| Number Number
 		| Character Char
 		| String String
 		| Symbol String
@@ -42,12 +46,3 @@ data Exp	= Ref Var
 		| If Exp Exp Exp
 		| SetBang Var Exp
 	deriving Show
-
-makeFormalList xs (Just d)	= DottedVarList xs d
-makeFormalList xs Nothing	= VarList xs
-
-makeList xs (Just d)	= DottedList xs d
-makeList xs Nothing	= List xs
-
-makeVector (List xs) = Vector xs
-makeVector _ = error "Bad input to makeVector -- Not a List()"

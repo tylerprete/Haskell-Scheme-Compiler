@@ -12,16 +12,10 @@
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
-module Language.Scheme.R5RS.Parser.Token ( Number (..), Token (..) )
+module Language.Scheme.R5RS.Parser.Token ( Token (..) )
 where
+import Language.Scheme.R5RS.Syntax.Expression (Number)
 --import Data.Complex -- for Complex Float
-
--- Number Constructors (Base 10 assumed)
-data Number
-	= Real Float
---	| Complex Complex Float
-	| Integer Int -- Integer Integer (Using Int as a simplification for now)
-	deriving (Eq, Show, Ord)
 
 -- | Lexical tokens.
 data Token

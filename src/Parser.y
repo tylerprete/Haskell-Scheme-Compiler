@@ -12,14 +12,19 @@
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
-module Language.Scheme.R5RS.Parser.Parser ()
+module Language.Scheme.R5RS.Parser.Parser (parse)
 where
 import qualified Language.Scheme.R5RS.Parser.Token as Token
 import Language.Scheme.R5RS.Parser.Lexer (alexScanTokens)
+import Language.Scheme.R5RS.Data.Expression
+import Data.Maybe
+
+-- Need to import the following if running parser in debug mode
+import System.IO
+import System.IO.Unsafe
 }
 
 %name parse Exp
---%name parseTest Datums1
 
 %tokentype { Token.Token }
 %error { parseError }
@@ -29,6 +34,7 @@ import Language.Scheme.R5RS.Parser.Lexer (alexScanTokens)
 	if		{ Token.Identifier "if"		}
 	and		{ Token.Identifier "and"	}
 	quote		{ Token.Identifier "quote"	}
+	setbang		{ Token.Identifier "set!"	}
 	'('		{ Token.LeftParen		}
 	')'		{ Token.RightParen		}
 	'#('		{ Token.PoundLeftParen		}
@@ -49,8 +55,10 @@ Exp	:: { Exp }
 Exp	: identifier 			{ Ref $ Var $1 	} 
     	| '(' Exp Exps ')'		{ App $2 $3 	}
     	| '(' if Exp Exp Exp ')'	{ If $3 $4 $5 	}
+	| '(' lambda Formals Exp ')'	{ Lambda $3 $4	}
 	| Quotation			{ $1		}
 	| SelfEvaluating		{ $1		}
+	| '(' setbang identifier Exp ')'	{ SetBang (Var $3) $4 }
 
 Exps	:: { [Exp] }
 Exps	: ExpsRev	{ reverse $1 }
@@ -59,18 +67,37 @@ ExpsRev	:: { [Exp] }
 ExpsRev	: {- empty -} { [] }
     	| ExpsRev Exp { $2 : $1 }
 
+Formals	:: { Formals }
+Formals	: identifier		{ SingleVar (Var $1) 	}
+	| '(' FormalList	{ $2			}	
+
+FormalList	:: { Formals }
+FormalList	: ')'				{ VarList [] }
+       		| Formals1 FormalEndList	{ makeFormalList (reverse $1) $2 }
+
+FormalEndList :: { Maybe Var }
+FormalEndList	: ')'			{ Nothing }
+		| '.' identifier ')'	{ Just (Var $2) }
+
+Formals1 :: { [Var] }
+Formals1	: identifier 		{ [(Var $1)] 	}
+		| Formals1 identifier	{ (Var $2) : $1 }
+
+SelfEvaluating :: { Exp }
 SelfEvaluating	: bool		{ Boolean $1 	}
 		| number	{ Number $1	}
 		| char		{ Character $1	}
 		| string	{ String $1	}
 
-Quotation	: '\'' Datum		{ Literal $2 }
-	  	| '(' quote Datum ')'	{ Literal $3 }
-		| Vector		{ Literal $ CompoundDatum $1 }
-		| Abbreviation		{ Literal $ CompoundDatum $ List [$1] }
+Quotation :: { Exp }
+Quotation	: '\'' Datum		{ $2 }
+	  	| '(' quote Datum ')'	{ $3 }
+		| Vector		{ $1 }
+--		| Abbreviation		{ $1 }
 
-Datum : SimpleDatum 	{ SimpleDatum $1 }
-      | CompoundDatum	{ CompoundDatum $1 }
+Datum :: { Exp }
+Datum : SimpleDatum 	{ $1 }
+      | CompoundDatum	{ $1 }
 
 SimpleDatum	:: { Exp }
 SimpleDatum	: bool 		{ Boolean $1 	}
@@ -78,75 +105,51 @@ SimpleDatum	: bool 		{ Boolean $1 	}
 		| char		{ Character $1 	}
 		| string	{ String $1 	}
 		| identifier	{ Symbol $1 	}
+{- Wow, really lame.  No way to grab all identifiers,
+so have to match if, let, etc by hand -}
+		| if		{ Symbol $ extractIdent $1 }
+		| let		{ Symbol $ extractIdent $1 }
+		| and		{ Symbol $ extractIdent $1 }
+		| quote		{ Symbol $ extractIdent $1 }
+		| lambda	{ Symbol $ extractIdent $1 }
 
-CompoundDatum	:: { DatumList }
+CompoundDatum	:: { Exp }
 CompoundDatum	: List		{ $1 }
 	      	| Vector	{ $1 }
 
-List	:: { DatumList }
+List	:: { Exp }
 List	: '(' InList		{ $2 }
 	| Abbreviation		{ List [$1] }
 
-InList	:: { DatumList }
+InList	:: { Exp }
 InList	: ')'			{ List [] }
        	| Datums1 EndList	{ makeList (reverse $1) $2 }
 
-EndList	: ')'		{ [] 	}
-	| '.' Datum ')'	{ [$2] 	}
+EndList :: { Maybe Exp }
+EndList	: ')'		{ Nothing }
+	| '.' Datum ')'	{ Just $2 }
 
-{-
-Datums :: { [Datum] }
-Datums	: {- empty -} { [] }
-       	| Datums Datum { $2 : $1 }
--}
-Datums1 :: { [Datum] }
+Datums1 :: { [Exp] }
 Datums1 : Datum 	{ [$1] }
 	| Datums1 Datum	{ $2 : $1 }
 
-Abbreviation	: AbbrevPrefix Datum	{ $2 } -- interesting...
+-- Ignoring prefix is no doubt a bad move, but works for now
+Abbreviation :: { Exp }
+Abbreviation	: AbbrevPrefix Datum	{ $2 }
 
-AbbrevPrefix	--: '\''	{ () }
-	     	: '`'	{ () }
+AbbrevPrefix :: { () }
+AbbrevPrefix	: '\''	{ () }
+	     	| '`'	{ () }
 		| ','	{ () }
 		| ',@'	{ () }
 
+Vector :: { Exp }
 Vector : '#(' InList { makeVector $2 }
 
 {
-data Var = Var String
-	deriving Show
+extractIdent (Token.Identifier s) = s
+extractIdent _ = error "bad use of extractIdent"
 
-data Formals	= SingleVar Var
-		| ManyVar [Var]
-		| DottedVars [Var] Var
-	deriving Show
-
-data Exp	= Ref Var
-		| Boolean Bool
-		| Number Token.Number
-		| Character Char
-		| String String
-		| Symbol String
-		-- | literal stuff
-		| Literal Datum -- Temporary
-		| App Exp [Exp]
-		| Lam [Formals]
-		| If Exp Exp Exp
-		| SetBang Var Exp
-	deriving Show
-
-data DatumList = List [Datum] | DottedList [Datum] Datum | Vector [Datum]
-	deriving Show
-
-makeList xs [d]	= DottedList xs d
-makeList xs []	= List xs
-makeList _  _	= error "bad List"
-
-makeVector (List xs) = Vector xs
-makeVector _ = error "Bad input to makeVector"
-
-data Datum = SimpleDatum Exp | CompoundDatum DatumList
-	deriving Show
 parseError :: [Token.Token] -> a
 parseError _ = error $ "Parse error"
 }

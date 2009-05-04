@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      : Language.Scheme.R5RS.Data.Expression
+-- Module      : Language.Scheme.R5RS.Syntax.Expression
 -- Copyright   : (c) Tyler Prete 
 -- License     : BSD-style
 -- Maintainer  : psyonic@gmail.com
@@ -11,12 +11,9 @@
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
-module Language.Scheme.R5RS.Data.Expression 
-	(Exp(..), Formals(..), Var(..),
-	makeFormalList, makeList, makeVector)	
+module Language.Scheme.R5RS.Syntax.PrettyPrint
 where
-import qualified Language.Scheme.R5RS.Parser.Token as Token
-import Data.Maybe
+import Language.Scheme.R5RS.Syntax.Expression
 
 data Var = Var String
 	deriving Show
@@ -42,12 +39,3 @@ data Exp	= Ref Var
 		| If Exp Exp Exp
 		| SetBang Var Exp
 	deriving Show
-
-makeFormalList xs (Just d)	= DottedVarList xs d
-makeFormalList xs Nothing	= VarList xs
-
-makeList xs (Just d)	= DottedList xs d
-makeList xs Nothing	= List xs
-
-makeVector (List xs) = Vector xs
-makeVector _ = error "Bad input to makeVector -- Not a List()"

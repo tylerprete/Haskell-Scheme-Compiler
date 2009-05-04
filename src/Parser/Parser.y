@@ -15,9 +15,9 @@
 module Language.Scheme.R5RS.Parser.Parser (parse)
 where
 import qualified Language.Scheme.R5RS.Parser.Token as Token
+import Language.Scheme.R5RS.Parser.ParserUtils
 import Language.Scheme.R5RS.Parser.Lexer (alexScanTokens)
-import Language.Scheme.R5RS.Data.Expression
-import Data.Maybe
+import Language.Scheme.R5RS.Syntax.Expression
 
 -- Need to import the following if running parser in debug mode
 import System.IO

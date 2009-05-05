@@ -17,98 +17,140 @@ import Language.Scheme.R5RS.Syntax.Expression
 
 import Data.Supply -- Used for generating unique values
 
-fresh :: (Num a) => [Supply a] -> String -> ([Supply a], (String, Var, Exp))
-fresh (x:xs) prefix = (xs, (s,v,r))
+fresh :: (Num a) => Supply a -> String -> (String, Var, Exp)
+fresh sup prefix = (s,v,r)
 	where
-		n = supplyValue x
+		n = supplyValue sup
 		s = prefix ++ "$" ++ (show n)
 		v = Var s
 		r = Ref v
-		{-
- 			n <- return $ supplyValue x
-			s <- return $ prefix ++ "$" ++ (show n)
-			v <- return $ Var s
-			r <- return $ Ref v
-			return (xs, (s,v,r))
-			-}
 
-smarter_m :: (Num a) => [Supply a] -> Exp -> ([Supply a], Exp)
-smarter_m xs e@(Ref v) = (xs,e)
-
---smarter_m (Lambda (SingleVar v) body) = Lambda (
-smarter_m xs (Lambda (VarList vs) body) = 
-	(xs2, (Lambda (VarList $ vs ++ [vk]) newbody))
+smarter_m s (Lambda (VarList vs) body) = (Lambda (VarList $ vk:vs) newbody)
 	where
-		(xs1, (k, vk, rk)) = fresh xs "k"
-		(xs2, newbody) = smarter_t xs body rk
-smarter_m xs (Lambda _ body) = error "Lambda Parameter type not yet implemented."
+		(s1,s2) = (split2 s)
+		(k, vk, rk) = fresh s1 "k"
+		newbody = smarter_t s2 body rk
 
-smarter_m xs e | isAtomNotLambda e = (xs,e)
+smarter_m s (Lambda (SingleVar v) body) = 
+	(Lambda (DottedVarList [vk] v) newbody)
+	where
+		(s1,s2) = (split2 s)
+		(k, vk, rk) = fresh s1 "k"
+		newbody = smarter_t s2 body rk
 
-smarter_m xs e = error "smarter_m called with not-atomic Exp"
+smarter_m s (Lambda (DottedVarList vs v) body) = 
+	(Lambda (DottedVarList (vk:vs) v) newbody)
+	where
+		(s1,s2) = (split2 s)
+		(k, vk, rk) = fresh s1 "k"
+		newbody = smarter_t s2 body rk
 
-smarter_t :: (Num a) => [Supply a] -> Exp -> Exp -> ([Supply a], Exp)
-smarter_t xs e q | isAtomNotLambda e = (xs, App q [e])
-smarter_t xs e@(Lambda _ _) q = (xs1, App q [e1]) where
-	(xs1,e1) = smarter_m xs e
+smarter_m _ e | isAtom e = e
 
--- This can be broken down into 4 cases to generate smaller code, but for now
--- I'm using the general case to get things working
-smarter_t xs (If c t f) q = (xs4, App body [q]) where
-	(xs1, (t_, vt_, rt_)) = fresh xs "tmp"
-	(xs2, (f_, vf_, rf_)) = fresh xs1 "retval"
-	(xs3, newt) = smarter_t xs2 t rt_
-	(xs4, newf) = smarter_t xs3 f rt_
+smarter_m _ _ = error "smarter_m called with not-atomic Exp"
+
+-- Smarter_t applies continuation to expressions, converting arguments to cps
+-- as necessary
+
+smarter_t :: (Num a) => Supply a -> Exp -> Exp -> Exp
+smarter_t s e@(Lambda _ _) q = App q [smarter_m s e]
+smarter_t _ e q | isAtom e = App q [e]
+
+smarter_t s (SetBang v e2) q@(Ref _) | isAtom e2 = newSB where
+	newSB = App q $ [SetBang v (smarter_m s e2)]
+
+smarter_t s e@(SetBang v e2) q@(Ref _) = newSB where
+	(sret,s1,s2) = (split3 s)
+	(_, vf_, rf_) = fresh sret "retval"
+	newSB = smarter_t s1 e2 $ Lambda (VarList [vf_]) (smarter_t s2 (SetBang v rf_) q)
+
+smarter_t s e@(SetBang v e2) q | isAtom e2 = App newSB [q] where
+	(st,s1) = split2 s
+	(_, vt_, rt_) = fresh st "tmp"
+	newSB = Lambda 	(VarList [vt_]) $
+	  		App rt_ $ [SetBang v (smarter_m s1 e2)]
+
+smarter_t s e@(SetBang v e2) q = App newSB [q] where
+	(st:sret:s1:s2:_) = split s
+	(_, vt_, rt_) = fresh st "tmp"
+	(_, vf_, rf_) = fresh sret "retval"
+	inSB = smarter_t s1 e2 $ Lambda (VarList [vf_]) 
+					(App rt_ [SetBang v rf_])
+	newSB = Lambda 	(VarList [vt_]) inSB
+
+smarter_t s (If c t f) q@(Ref _) | isAtom c = newIf where
+	(s1,s2,s3) = (split3 s)
+	newIf = If (smarter_m s1 c) (smarter_t s2 t q) (smarter_t s3 f q)
+
+smarter_t s (If c t f) q@(Ref _) = e where
+	(sret:s1:s2:s3:_) = split s
+	(_, vf_, rf_) = fresh sret "retval"
+	e = smarter_t s1 c (Lambda (VarList [vf_])
+				(If rf_ (smarter_t s2 t q) (smarter_t s3 f q)))
+
+smarter_t s (If c t f) q | isAtom c = App body [q] where
+	(sret:s1:s2:s3:_) = split s
+	(t_, vt_, rt_) = fresh sret "tmp"
+	newif = If (smarter_m s1 c) (smarter_t s2 t rt_) (smarter_t s3 f rt_)
+	body = Lambda (VarList [vt_]) newif
+
+smarter_t s (If c t f) q = App body [q] where
+	(s1:s2:s3:s4:s5:_) = split s
+	(t_, vt_, rt_) = fresh s1 "tmp"
+	(f_, vf_, rf_) = fresh s2 "retval"
+	newt = smarter_t s3 t rt_
+	newf = smarter_t s4 f rt_
 	newif = If rf_ newt newf
 	innerlam = Lambda (VarList [vf_]) newif
-	(xs5, innerbody) = smarter_t xs4 c innerlam
+	innerbody = smarter_t s5 c innerlam
 	body = Lambda (VarList [vt_]) innerbody
 
--- This can also be broken down into 4 cases to generate smaller code, but for now
--- I'm using the general case to get things working
-{- smarter_t xs (App f exps) q = (xs9, e9) where
-	(xs1, (f_, vf_, rf_)) = fresh xs "retval"
-	newExps = map (\e -> if (not isAtom(e))
-				then let ((xs2, (e_,ve_,re_)) = fresh xs1 "retval" in
--}
+smarter_t s (App f exps) q | isAtom f && all isAtom exps = e where
+	s1:xs = split s
+	e = App (smarter_m s1 f) $ q:(map (\(e,sp) -> smarter_m sp e) (zip exps xs))
+
+smarter_t s (App f exps) q | isAtom f = fst res where
+	(s1:s2:xs) = (split s)
+	smartf = smarter_m s1 f
+	expSupplys = zip exps xs
+	newExps = map (\(e,sp) -> if (not $ isAtom e)
+				then let (e_,ve_,re_) = fresh sp "retval" in
+					 (re_,True)
+				else (smarter_m sp e, False)) expSupplys
+	nvTest (Ref _, True) = True
+	nvTest (_,_) = False
+	newVars = map (\(Ref v, _) -> v) (filter nvTest newExps)
+	newExps2 = map fst newExps
+	k = App smartf $ q:newExps2
+	startVals = (k, reverse newVars)
+	foldFunc (e, _) v | isAtom e = v
+	foldFunc (e, sp) (e2, v:vs) = (smarter_t sp e (Lambda (VarList [v]) e2), vs)
+	res = foldr foldFunc startVals (zip exps (split s2))
+
+smarter_t s (App f exps) q | all isAtom exps = 
+	smarter_t s2 f (Lambda (VarList [vf_]) (App rf_ $ q:exps)) where
+	(s1,s2) = (split2 s)
+	(_, vf_, rf_) = fresh s1 "retval"
+
+smarter_t s (App f exps) q = smarter_t s3 f (Lambda (VarList [vf_]) (fst res)) where
+	(s1:s2:s3:xs) = (split s)
+	(_, vf_, rf_) = fresh s1 "retval"
+	expSupplys = zip exps xs
+	newExps = map (\(e,sp) -> if (not $ isAtom e)
+				then let (e_,ve_,re_) = fresh sp "retval" in
+					 (re_,True)
+				else (smarter_m sp e, False)) expSupplys
+	nvTest (Ref _, True) = True
+	nvTest (_,_) = False
+	newVars = map (\(Ref v, _) -> v) (filter nvTest newExps)
+	newExps2 = map fst newExps
+	k = App rf_ $ q:newExps2
+	startVals = (k, reverse newVars)
+	foldFunc (e, _) v | isAtom e = v
+	foldFunc (e, sp) (e2, v:vs) = (smarter_t sp e (Lambda (VarList [v]) e2), vs)
+	res = foldr foldFunc startVals (zip exps (split s2))
 
 smarter_t _ _ _ = error "Not yet implemented"
-
-
-
-
-{-
--- Number Constructors (Base 10 assumed)
-data Number
-	= Real Float
---	| Complex Complex Float
-	| Integer Int -- Integer Integer (Using Int as a simplification for now)
-	deriving (Eq, Show, Ord)
-
-data Var = Var String
-	deriving Show
-
-data Formals	= SingleVar Var
-		| VarList [Var]
-		| DottedVarList [Var] Var
-	deriving Show
-
-data Exp	= Ref Var -- Literals (Values)
-		| Boolean Bool
-		| Number Number
-		| Character Char
-		| String String
-		| Symbol String
-		| List [Exp]
-		| DottedList [Exp] Exp
-		| Vector [Exp]
-		| Lambda Formals Exp
-
-		| App Exp [Exp]
-		| If Exp Exp Exp
-		| SetBang Var Exp
-	deriving Show
--}
 
 -- Helper functions
 isAtom :: Exp -> Bool
@@ -124,7 +166,3 @@ isAtom (Vector _) = True
 isAtom (Lambda _ _) = True
 -- False for other types
 isAtom _ = False
-
-isAtomNotLambda :: Exp -> Bool
-isAtomNotLambda (Lambda _ _) = False
-isAtomNotLambda e = isAtom e

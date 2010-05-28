@@ -45,4 +45,5 @@ data Exp	= Ref Var
 		| Lambda Formals Exp
 		| If Exp Exp Exp
 		| SetBang Var Exp
+		| CallCC Exp
 	deriving Show

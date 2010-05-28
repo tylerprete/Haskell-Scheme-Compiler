@@ -35,6 +35,7 @@ import System.IO.Unsafe
 	and		{ Token.Identifier "and"	}
 	quote		{ Token.Identifier "quote"	}
 	setbang		{ Token.Identifier "set!"	}
+	callcc		{ Token.Identifier "call/cc"	}
 	'('		{ Token.LeftParen		}
 	')'		{ Token.RightParen		}
 	'#('		{ Token.PoundLeftParen		}
@@ -59,6 +60,7 @@ Exp	: identifier 			{ Ref $ Var $1 	}
 	| Quotation			{ $1		}
 	| SelfEvaluating		{ $1		}
 	| '(' setbang identifier Exp ')'	{ SetBang (Var $3) $4 }
+	| '(' callcc Exp ')'		{ CallCC $3	}
 
 Exps	:: { [Exp] }
 Exps	: ExpsRev	{ reverse $1 }
@@ -112,6 +114,8 @@ so have to match if, let, etc by hand -}
 		| and		{ Symbol $ extractIdent $1 }
 		| quote		{ Symbol $ extractIdent $1 }
 		| lambda	{ Symbol $ extractIdent $1 }
+		| setbang	{ Symbol $ extractIdent $1 }
+		| callcc	{ Symbol $ extractIdent $1 }
 
 CompoundDatum	:: { Exp }
 CompoundDatum	: List		{ $1 }

@@ -44,6 +44,7 @@ instance PrettyPrint Exp where
   pp (Lambda f e) = "(lambda " ++ pp f ++ " " ++ pp e ++ ")"
   pp (If c t f) = "(if " ++ pp c ++ " " ++ pp t ++ " " ++ pp f ++ ")"
   pp (SetBang v e) = "(set! " ++ pp v ++ " " ++ pp e ++ ")"	 
+  pp (CallCC e) = "(call/cc " ++ pp e ++ ")"
 
 -- Helper Functions
 ppList xs = "(" ++ (unwords $ map pp xs) ++ ")"

@@ -45,15 +45,44 @@ smarter_m s (Lambda (DottedVarList vs v) body) =
 		(k, vk, rk) = fresh s1 "k"
 		newbody = smarter_t s2 body rk
 
+--smarter_m s (CallCC e) = error "Don't think this should be called..."
+smarter_m s (CallCC _) = body where
+	makeNames str = (str, Var str, Ref $ Var str)
+	(f_, vf_, rf_) = makeNames "f"
+	(k_, vk_, rk_) = makeNames "k"
+	(v_, vv_, rv_) = makeNames "v"
+	(k0_,vk0_,rk0_)= makeNames "k0"
+	innerbody = App rf_ [rk_, Lambda	(VarList [vk0_, vv_])
+						(App rk_ [rv_])]
+	body = Lambda (VarList [vk_,vf_]) innerbody
+
 smarter_m _ e | isAtom e = e
 
 smarter_m _ _ = error "smarter_m called with not-atomic Exp"
+
+-- convcallcc is the lambda body that callcc becomes
+convcallcc = body where
+	makeNames str = (str, Var str, Ref $ Var str)
+	(f_, vf_, rf_) = makeNames "f"
+	(k_, vk_, rk_) = makeNames "k"
+	(v_, vv_, rv_) = makeNames "v"
+	(k0_,vk0_,rk0_)= makeNames "k0"
+	innerbody = App rf_ [rk_, Lambda	(VarList [vk0_, vv_])
+						(App rk_ [rv_])]
+	body = Lambda (VarList [vk_,vf_]) innerbody
 
 -- Smarter_t applies continuation to expressions, converting arguments to cps
 -- as necessary
 
 smarter_t :: (Num a) => Supply a -> Exp -> Exp -> Exp
 smarter_t s e@(Lambda _ _) q = App q [smarter_m s e]
+
+smarter_t s e@(CallCC e2) q = body where
+	(s1,s2,s3) = split3 s
+	(_,ve2,re2) = fresh s1 "tmp"
+	body = smarter_t s2 e2 $ Lambda (VarList [ve2]) $ App q [App convcallcc [re2]]
+	
+
 smarter_t _ e q | isAtom e = App q [e]
 
 smarter_t s (SetBang v e2) q@(Ref _) | isAtom e2 = newSB where
@@ -164,5 +193,6 @@ isAtom (List _) = True
 isAtom (DottedList _ _) = True
 isAtom (Vector _) = True
 isAtom (Lambda _ _) = True
+isAtom (CallCC _) = True
 -- False for other types
 isAtom _ = False

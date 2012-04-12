@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      : Language.Scheme.R5RS.Executable.Go
+-- Module      : Language.Scheme.R5RS.Executable.Main
 -- Copyright   : (c) Tyler Prete 
 -- License     : BSD-style
 -- Maintainer  : psyonic@gmail.com
@@ -11,7 +11,7 @@
 -- See: <http://people.csail.mit.edu/jaffer/r5rs_9.html#SEC72>
 -----------------------------------------------------------------------------
 
-module Language.Scheme.R5RS.Executable.Go (main)
+module Main (main)
 where
 import Language.Scheme.R5RS.Parser.Lexer (alexScanTokens)
 import Language.Scheme.R5RS.Parser.Parser (parse)
@@ -19,7 +19,7 @@ import Language.Scheme.R5RS.Syntax.Expression
 import Language.Scheme.R5RS.Syntax.PrettyPrint
 import Language.Scheme.R5RS.Transformer.CPSTransformer
 
-import Data.Supply
+import Data.Supply (newNumSupply)
 
 main = do
   	input <- getContents

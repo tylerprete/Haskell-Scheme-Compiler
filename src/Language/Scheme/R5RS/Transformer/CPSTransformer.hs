@@ -17,7 +17,7 @@ import Language.Scheme.R5RS.Syntax.Expression
 
 import Data.Supply -- Used for generating unique values
 
-fresh :: (Num a) => Supply a -> String -> (String, Var, Exp)
+fresh :: (Num a, Show a) => Supply a -> String -> (String, Var, Exp)
 fresh sup prefix = (s,v,r)
 	where
 		n = supplyValue sup
@@ -74,7 +74,7 @@ convcallcc = body where
 -- Smarter_t applies continuation to expressions, converting arguments to cps
 -- as necessary
 
-smarter_t :: (Num a) => Supply a -> Exp -> Exp -> Exp
+smarter_t :: (Num a, Show a) => Supply a -> Exp -> Exp -> Exp
 smarter_t s e@(Lambda _ _) q = App q [smarter_m s e]
 
 smarter_t s e@(CallCC e2) q = body where

@@ -12,38 +12,38 @@
 -----------------------------------------------------------------------------
 
 module Language.Scheme.R5RS.Syntax.Expression
-	(Exp(..), Formals(..), Var(..), Number(..))
+    (Exp(..), Formals(..), Var(..), Number(..))
 where
 
 -- Number Constructors (Base 10 assumed)
 data Number
-	= Real Float
---	| Complex Complex Float
-	| Integer Int -- Integer Integer (Using Int as a simplification for now)
-	deriving (Eq, Show, Ord)
+    = Real Float
+--  | Complex Complex Float
+    | Integer Int -- Integer Integer (Using Int as a simplification for now)
+    deriving (Eq, Show, Ord)
 
 data Var = Var String
-	deriving Show
+    deriving Show
 
-data Formals	= SingleVar Var
-		| VarList [Var]
-		| DottedVarList [Var] Var
-	deriving Show
+data Formals    = SingleVar Var
+        | VarList [Var]
+        | DottedVarList [Var] Var
+    deriving Show
 
-data Exp	= Ref Var
-		-- Literals (Values)
-		| Boolean Bool
-		| Number Number
-		| Character Char
-		| String String
-		| Symbol String
-		| List [Exp]
-		| DottedList [Exp] Exp
-		| Vector [Exp]
+data Exp    = Ref Var
+        -- Literals (Values)
+        | Boolean Bool
+        | Number Number
+        | Character Char
+        | String String
+        | Symbol String
+        | List [Exp]
+        | DottedList [Exp] Exp
+        | Vector [Exp]
 
-		| App Exp [Exp]
-		| Lambda Formals Exp
-		| If Exp Exp Exp
-		| SetBang Var Exp
-		| CallCC Exp
-	deriving Show
+        | App Exp [Exp]
+        | Lambda Formals Exp
+        | If Exp Exp Exp
+        | SetBang Var Exp
+        | CallCC Exp
+    deriving Show

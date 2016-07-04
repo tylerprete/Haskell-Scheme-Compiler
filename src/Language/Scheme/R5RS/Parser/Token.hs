@@ -19,18 +19,18 @@ import Language.Scheme.R5RS.Syntax.Expression (Number)
 
 -- | Lexical tokens.
 data Token
-	-- Identifier
-	= Identifier !String
-	| Boolean Bool
-	| Number Number
-	| Character Char
-	| String !String
-	| LeftParen
-	| RightParen
-	| PoundLeftParen
-	| Tick
-	| BackTick
-	| Comma
-	| CommaAt
-	| Dot
-	deriving (Eq, Show, Ord)
+    -- Identifier
+    = Identifier !String
+    | Boolean Bool
+    | Number Number
+    | Character Char
+    | String !String
+    | LeftParen
+    | RightParen
+    | PoundLeftParen
+    | Tick
+    | BackTick
+    | Comma
+    | CommaAt
+    | Dot
+    deriving (Eq, Show, Ord)

@@ -16,11 +16,11 @@ where
 import Language.Scheme.R5RS.Syntax.Expression
 import Data.Maybe
 
-makeFormalList xs (Just d)	= DottedVarList xs d
-makeFormalList xs Nothing	= VarList xs
+makeFormalList xs (Just d)  = DottedVarList xs d
+makeFormalList xs Nothing   = VarList xs
 
-makeList xs (Just d)	= DottedList xs d
-makeList xs Nothing	= List xs
+makeList xs (Just d)        = DottedList xs d
+makeList xs Nothing         = List xs
 
-makeVector (List xs) = Vector xs
-makeVector _ = error "Bad input to makeVector -- Not a List()"
+makeVector (List xs)        = Vector xs
+makeVector _                = error "Bad input to makeVector -- Not a List()"

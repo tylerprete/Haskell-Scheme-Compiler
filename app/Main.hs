@@ -22,16 +22,16 @@ import Language.Scheme.R5RS.Transformer.CPSTransformer
 import Data.Supply (newNumSupply)
 
 main = do
-  	input <- getContents
-	tokens <- return $ alexScanTokens input
-	ast <- return $ parse tokens
-	print ast
-	putStrLn (pp ast)
-	s <- newNumSupply
-	halt <- return $ Ref (Var "halt")
-	e <- return $ smarter_t s ast halt
-	putStrLn "CPS Converted"
-	print e
-	putStrLn (pp e)
-	
+    input <- getContents
+    tokens <- return $ alexScanTokens input
+    ast <- return $ parse tokens
+    print ast
+    putStrLn (pp ast)
+    s <- newNumSupply
+    halt <- return $ Ref (Var "halt")
+    e <- return $ smarter_t s ast halt
+    putStrLn "CPS Converted"
+    print e
+    putStrLn (pp e)
+    
 

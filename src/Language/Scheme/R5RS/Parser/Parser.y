@@ -29,123 +29,123 @@ import System.IO.Unsafe
 %tokentype { Token.Token }
 %error { parseError }
 
-%token	let		{ Token.Identifier "let" 	}
-	lambda		{ Token.Identifier "lambda" 	}
-	if		{ Token.Identifier "if"		}
-	and		{ Token.Identifier "and"	}
-	quote		{ Token.Identifier "quote"	}
-	setbang		{ Token.Identifier "set!"	}
-	callcc		{ Token.Identifier "call/cc"	}
-	'('		{ Token.LeftParen		}
-	')'		{ Token.RightParen		}
-	'#('		{ Token.PoundLeftParen		}
-	'\''		{ Token.Tick			}
-	'`'		{ Token.BackTick		}
-	','		{ Token.Comma			}
-	',@'		{ Token.CommaAt			}
-	'.'		{ Token.Dot			}
-	bool		{ Token.Boolean $$		}
-	number		{ Token.Number $$		}
-	char		{ Token.Character $$		}
-	string		{ Token.String $$		}
-	identifier	{ Token.Identifier $$		}
+%token  let     { Token.Identifier "let"    }
+    lambda      { Token.Identifier "lambda"     }
+    if      { Token.Identifier "if"     }
+    and     { Token.Identifier "and"    }
+    quote       { Token.Identifier "quote"  }
+    setbang     { Token.Identifier "set!"   }
+    callcc      { Token.Identifier "call/cc"    }
+    '('     { Token.LeftParen       }
+    ')'     { Token.RightParen      }
+    '#('        { Token.PoundLeftParen      }
+    '\''        { Token.Tick            }
+    '`'     { Token.BackTick        }
+    ','     { Token.Comma           }
+    ',@'        { Token.CommaAt         }
+    '.'     { Token.Dot         }
+    bool        { Token.Boolean $$      }
+    number      { Token.Number $$       }
+    char        { Token.Character $$        }
+    string      { Token.String $$       }
+    identifier  { Token.Identifier $$       }
 
 %%
 
-Exp	:: { Exp }
-Exp	: identifier 			{ Ref $ Var $1 	} 
-    	| '(' Exp Exps ')'		{ App $2 $3 	}
-    	| '(' if Exp Exp Exp ')'	{ If $3 $4 $5 	}
-	| '(' lambda Formals Exp ')'	{ Lambda $3 $4	}
-	| Quotation			{ $1		}
-	| SelfEvaluating		{ $1		}
-	| '(' setbang identifier Exp ')'	{ SetBang (Var $3) $4 }
-	| '(' callcc Exp ')'		{ CallCC $3	}
+Exp :: { Exp }
+Exp : identifier            { Ref $ Var $1  } 
+        | '(' Exp Exps ')'      { App $2 $3     }
+        | '(' if Exp Exp Exp ')'    { If $3 $4 $5   }
+    | '(' lambda Formals Exp ')'    { Lambda $3 $4  }
+    | Quotation         { $1        }
+    | SelfEvaluating        { $1        }
+    | '(' setbang identifier Exp ')'    { SetBang (Var $3) $4 }
+    | '(' callcc Exp ')'        { CallCC $3 }
 
-Exps	:: { [Exp] }
-Exps	: ExpsRev	{ reverse $1 }
+Exps    :: { [Exp] }
+Exps    : ExpsRev   { reverse $1 }
 
-ExpsRev	:: { [Exp] }
-ExpsRev	: {- empty -} { [] }
-    	| ExpsRev Exp { $2 : $1 }
+ExpsRev :: { [Exp] }
+ExpsRev : {- empty -} { [] }
+        | ExpsRev Exp { $2 : $1 }
 
-Formals	:: { Formals }
-Formals	: identifier		{ SingleVar (Var $1) 	}
-	| '(' FormalList	{ $2			}	
+Formals :: { Formals }
+Formals : identifier        { SingleVar (Var $1)    }
+    | '(' FormalList    { $2            }   
 
-FormalList	:: { Formals }
-FormalList	: ')'				{ VarList [] }
-       		| Formals1 FormalEndList	{ makeFormalList (reverse $1) $2 }
+FormalList  :: { Formals }
+FormalList  : ')'               { VarList [] }
+            | Formals1 FormalEndList    { makeFormalList (reverse $1) $2 }
 
 FormalEndList :: { Maybe Var }
-FormalEndList	: ')'			{ Nothing }
-		| '.' identifier ')'	{ Just (Var $2) }
+FormalEndList   : ')'           { Nothing }
+        | '.' identifier ')'    { Just (Var $2) }
 
 Formals1 :: { [Var] }
-Formals1	: identifier 		{ [(Var $1)] 	}
-		| Formals1 identifier	{ (Var $2) : $1 }
+Formals1    : identifier        { [(Var $1)]    }
+        | Formals1 identifier   { (Var $2) : $1 }
 
 SelfEvaluating :: { Exp }
-SelfEvaluating	: bool		{ Boolean $1 	}
-		| number	{ Number $1	}
-		| char		{ Character $1	}
-		| string	{ String $1	}
+SelfEvaluating  : bool      { Boolean $1    }
+        | number    { Number $1 }
+        | char      { Character $1  }
+        | string    { String $1 }
 
 Quotation :: { Exp }
-Quotation	: '\'' Datum		{ $2 }
-	  	| '(' quote Datum ')'	{ $3 }
-		| Vector		{ $1 }
---		| Abbreviation		{ $1 }
+Quotation   : '\'' Datum        { $2 }
+        | '(' quote Datum ')'   { $3 }
+        | Vector        { $1 }
+--      | Abbreviation      { $1 }
 
 Datum :: { Exp }
-Datum : SimpleDatum 	{ $1 }
-      | CompoundDatum	{ $1 }
+Datum : SimpleDatum     { $1 }
+      | CompoundDatum   { $1 }
 
-SimpleDatum	:: { Exp }
-SimpleDatum	: bool 		{ Boolean $1 	}
-	   	| number	{ Number $1 	}
-		| char		{ Character $1 	}
-		| string	{ String $1 	}
-		| identifier	{ Symbol $1 	}
+SimpleDatum :: { Exp }
+SimpleDatum : bool      { Boolean $1    }
+        | number    { Number $1     }
+        | char      { Character $1  }
+        | string    { String $1     }
+        | identifier    { Symbol $1     }
 {- Wow, really lame.  No way to grab all identifiers,
 so have to match if, let, etc by hand -}
-		| if		{ Symbol $ extractIdent $1 }
-		| let		{ Symbol $ extractIdent $1 }
-		| and		{ Symbol $ extractIdent $1 }
-		| quote		{ Symbol $ extractIdent $1 }
-		| lambda	{ Symbol $ extractIdent $1 }
-		| setbang	{ Symbol $ extractIdent $1 }
-		| callcc	{ Symbol $ extractIdent $1 }
+        | if        { Symbol $ extractIdent $1 }
+        | let       { Symbol $ extractIdent $1 }
+        | and       { Symbol $ extractIdent $1 }
+        | quote     { Symbol $ extractIdent $1 }
+        | lambda    { Symbol $ extractIdent $1 }
+        | setbang   { Symbol $ extractIdent $1 }
+        | callcc    { Symbol $ extractIdent $1 }
 
-CompoundDatum	:: { Exp }
-CompoundDatum	: List		{ $1 }
-	      	| Vector	{ $1 }
+CompoundDatum   :: { Exp }
+CompoundDatum   : List      { $1 }
+            | Vector    { $1 }
 
-List	:: { Exp }
-List	: '(' InList		{ $2 }
-	| Abbreviation		{ List [$1] }
+List    :: { Exp }
+List    : '(' InList        { $2 }
+    | Abbreviation      { List [$1] }
 
-InList	:: { Exp }
-InList	: ')'			{ List [] }
-       	| Datums1 EndList	{ makeList (reverse $1) $2 }
+InList  :: { Exp }
+InList  : ')'           { List [] }
+        | Datums1 EndList   { makeList (reverse $1) $2 }
 
 EndList :: { Maybe Exp }
-EndList	: ')'		{ Nothing }
-	| '.' Datum ')'	{ Just $2 }
+EndList : ')'       { Nothing }
+    | '.' Datum ')' { Just $2 }
 
 Datums1 :: { [Exp] }
-Datums1 : Datum 	{ [$1] }
-	| Datums1 Datum	{ $2 : $1 }
+Datums1 : Datum     { [$1] }
+    | Datums1 Datum { $2 : $1 }
 
 -- Ignoring prefix is no doubt a bad move, but works for now
 Abbreviation :: { Exp }
-Abbreviation	: AbbrevPrefix Datum	{ $2 }
+Abbreviation    : AbbrevPrefix Datum    { $2 }
 
 AbbrevPrefix :: { () }
-AbbrevPrefix	: '\''	{ () }
-	     	| '`'	{ () }
-		| ','	{ () }
-		| ',@'	{ () }
+AbbrevPrefix    : '\''  { () }
+            | '`'   { () }
+        | ','   { () }
+        | ',@'  { () }
 
 Vector :: { Exp }
 Vector : '#(' InList { makeVector $2 }
